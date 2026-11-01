@@ -56,7 +56,7 @@ jobs:
         run: |
           code=0
           if [ -d out/oracles ] && [ -f app/tools/oracles/validate.py ]; then
-            pip install -q ifcopenshell lxml > out/oracles.log 2>&1
+            pip install -q ifcopenshell lxml wntr > out/oracles.log 2>&1
             python3 app/tools/oracles/validate.py out/oracles >> out/oracles.log 2>&1 || code=1
             if [ $code = 0 ]; then s=OK; else s=ECHEC; fi
             echo "Oracles externes : $s" | tee -a "$GITHUB_STEP_SUMMARY"
