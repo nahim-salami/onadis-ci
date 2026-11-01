@@ -101,6 +101,14 @@ jobs:
             if [ $c = 0 ]; then s=OK; else s=ECHEC; rc=1; fi
             echo "Plugin $p : $s" | tee -a "$GITHUB_STEP_SUMMARY"
           done
+          # Paquet installable (chiffre avec les journaux) : DLL compilees par hote.
+          for p in GstarCAD ZWCAD AutoCAD; do
+            for d in app/src/Onadis.$p/bin/Release/*/; do
+              [ -d "$d" ] || continue
+              t="out/package/$p/$(basename "$d")"
+              mkdir -p "$t" && cp -r "$d". "$t"/
+            done
+          done
           echo "code=$rc" >> "$GITHUB_OUTPUT"
       - name: Chiffrement de la sortie
         if: always()
