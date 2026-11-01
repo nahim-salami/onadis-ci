@@ -44,7 +44,7 @@ jobs:
             --logger "trx;LogFileName=tests.trx" --results-directory out > out/test.log 2>&1
           code=$?
           # Outils annexes (compilation seulement, s ils existent)
-          for t in app/tools/*/*.csproj; do
+          for t in app/tools/*/*.csproj app/examples/*/*.csproj; do
             [ -f "$t" ] || continue
             dotnet build "$t" -c Release --nologo >> out/tools.log 2>&1 || code=1
           done
@@ -101,6 +101,12 @@ jobs:
             if [ $c = 0 ]; then s=OK; else s=ECHEC; rc=1; fi
             echo "Plugin $p : $s" | tee -a "$GITHUB_STEP_SUMMARY"
           done
+          # Scripts d'exemple de l'API publique (DLL netstandard2.0 chargee par ONADIS_SCRIPT).
+          if [ -f app/examples/Onadis.ExampleScripts/Onadis.ExampleScripts.csproj ]; then
+            dotnet build app/examples/Onadis.ExampleScripts/Onadis.ExampleScripts.csproj -c Release --nologo > out/build-scripts.log 2>&1 || rc=1
+            mkdir -p out/package/Scripts
+            cp app/examples/Onadis.ExampleScripts/bin/Release/netstandard2.0/Onadis.ExampleScripts.dll out/package/Scripts/ 2>/dev/null || true
+          fi
           # Paquet installable (chiffre avec les journaux) : DLL compilees par hote.
           for p in GstarCAD ZWCAD AutoCAD; do
             for d in app/src/Onadis.$p/bin/Release/*/; do
