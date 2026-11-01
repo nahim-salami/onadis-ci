@@ -42,7 +42,13 @@ jobs:
           set +e
           dotnet test app/tests/Onadis.Core.Tests/Onadis.Core.Tests.csproj -c Release --nologo \
             --logger "trx;LogFileName=tests.trx" --results-directory out > out/test.log 2>&1
-          echo "code=$?" >> "$GITHUB_OUTPUT"
+          code=$?
+          # Outils annexes (compilation seulement, s ils existent)
+          for t in app/tools/*/*.csproj; do
+            [ -f "$t" ] || continue
+            dotnet build "$t" -c Release --nologo >> out/tools.log 2>&1 || code=1
+          done
+          echo "code=$code" >> "$GITHUB_OUTPUT"
       - name: Résumé public
         shell: bash
         run: bash relay/scripts/summary.sh out/tests.trx "${{ steps.test.outputs.code }}"
