@@ -40,6 +40,7 @@ jobs:
         run: |
           mkdir -p out
           set +e
+          export ONADIS_ORACLE_DIR="$PWD/out/oracles"
           dotnet test app/tests/Onadis.Core.Tests/Onadis.Core.Tests.csproj -c Release --nologo \
             --logger "trx;LogFileName=tests.trx" --results-directory out > out/test.log 2>&1
           code=$?
@@ -48,6 +49,18 @@ jobs:
             [ -f "$t" ] || continue
             dotnet build "$t" -c Release --nologo >> out/tools.log 2>&1 || code=1
           done
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Oracles externes (IFC, LandXML)
+        id: oracle
+        shell: bash
+        run: |
+          code=0
+          if [ -d out/oracles ] && [ -f app/tools/oracles/validate.py ]; then
+            pip install -q ifcopenshell lxml > out/oracles.log 2>&1
+            python3 app/tools/oracles/validate.py out/oracles >> out/oracles.log 2>&1 || code=1
+            if [ $code = 0 ]; then s=OK; else s=ECHEC; fi
+            echo "Oracles externes : $s" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
       - name: Résumé public
         shell: bash
@@ -66,7 +79,7 @@ jobs:
           retention-days: 3
       - name: Verdict
         shell: bash
-        run: test "${{ steps.test.outputs.code }}" = "0"
+        run: test "${{ steps.test.outputs.code }}" = "0" && test "${{ steps.oracle.outputs.code }}" = "0"
 
   plugins:
     name: Plugins CAO (AutoCAD / GstarCAD / ZWCAD)
