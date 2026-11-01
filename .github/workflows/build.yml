@@ -41,6 +41,11 @@ jobs:
           mkdir -p out
           set +e
           export ONADIS_ORACLE_DIR="$PWD/out/oracles"
+          # Jeux de test publics du CNIG (StaR-DT, PCRS) : lecture de donnees reelles par les tests.
+          mkdir -p cnig
+          curl -sfL -o cnig/enedis.gml https://raw.githubusercontent.com/cnigfr/StaR-DT/master/JeuxTest/enedis.gml || true
+          curl -sfL -o cnig/pcrs.gml https://raw.githubusercontent.com/cnigfr/PCRS/master/JeuxTest/JeuxTestv2.gml || true
+          export ONADIS_CNIG_DIR="$PWD/cnig"
           dotnet test app/tests/Onadis.Core.Tests/Onadis.Core.Tests.csproj -c Release --nologo \
             --logger "trx;LogFileName=tests.trx" --results-directory out > out/test.log 2>&1
           code=$?
