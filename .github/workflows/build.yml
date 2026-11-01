@@ -1,0 +1,113 @@
+name: ONADIS build
+run-name: "ONADIS ${{ inputs.ref }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branche ou commit du dépôt privé
+        required: true
+        default: main
+      plugins:
+        description: Compiler aussi les plugins CAO (Windows)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Moteur (tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: relay
+      - uses: actions/checkout@v4
+        with:
+          repository: nahim-salami/ONADIS
+          ref: ${{ inputs.ref }}
+          ssh-key: ${{ secrets.ONADIS_DEPLOY_KEY }}
+          persist-credentials: false
+          path: app
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restauration, compilation et tests (sortie privée)
+        id: test
+        shell: bash
+        run: |
+          mkdir -p out
+          set +e
+          dotnet test app/tests/Onadis.Core.Tests/Onadis.Core.Tests.csproj -c Release --nologo \
+            --logger "trx;LogFileName=tests.trx" --results-directory out > out/test.log 2>&1
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+      - name: Résumé public
+        shell: bash
+        run: bash relay/scripts/summary.sh out/tests.trx "${{ steps.test.outputs.code }}"
+      - name: Chiffrement de la sortie
+        if: always()
+        shell: bash
+        run: bash relay/scripts/seal.sh out relay/keys/log_pub.pem core
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-logs
+          path: |
+            core.enc
+            core.key
+          retention-days: 3
+      - name: Verdict
+        shell: bash
+        run: test "${{ steps.test.outputs.code }}" = "0"
+
+  plugins:
+    name: Plugins CAO (AutoCAD / GstarCAD / ZWCAD)
+    if: ${{ inputs.plugins }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: relay
+      - uses: actions/checkout@v4
+        with:
+          repository: nahim-salami/ONADIS
+          ref: ${{ inputs.ref }}
+          ssh-key: ${{ secrets.ONADIS_DEPLOY_KEY }}
+          persist-credentials: false
+          path: app
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Compilation (sortie privée)
+        id: build
+        shell: bash
+        run: |
+          mkdir -p out
+          set +e
+          rc=0
+          for p in AutoCAD GstarCAD ZWCAD; do
+            dotnet build "app/src/Onadis.$p/Onadis.$p.csproj" -c Release --nologo > "out/build-$p.log" 2>&1
+            c=$?
+            if [ $c = 0 ]; then s=OK; else s=ECHEC; rc=1; fi
+            echo "Plugin $p : $s" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+          echo "code=$rc" >> "$GITHUB_OUTPUT"
+      - name: Chiffrement de la sortie
+        if: always()
+        shell: bash
+        run: bash relay/scripts/seal.sh out relay/keys/log_pub.pem plugins
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugins-logs
+          path: |
+            plugins.enc
+            plugins.key
+          retention-days: 3
+      - name: Verdict
+        shell: bash
+        run: test "${{ steps.build.outputs.code }}" = "0"
