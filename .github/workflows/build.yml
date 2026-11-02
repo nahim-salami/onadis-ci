@@ -71,13 +71,15 @@ jobs:
             dotnet build "$t" -c Release --nologo >> out/tools.log 2>&1 || code=1
           done
           echo "code=$code" >> "$GITHUB_OUTPUT"
-      - name: Oracles externes (IFC, LandXML, EPANET, LAZ, E57, TLS, appli terrain)
+      - name: Oracles externes (IFC, LandXML, EPANET, SWMM, DWG, LAZ, E57, TLS, appli terrain)
         id: oracle
         shell: bash
         run: |
           code=0
           if [ -d out/oracles ] && [ -f app/tools/oracles/validate.py ]; then
-            pip install -q ifcopenshell lxml wntr "laspy[lazrs]" pye57 pillow ezdxf > out/oracles.log 2>&1
+            pip install -q ifcopenshell lxml wntr "laspy[lazrs]" pye57 pillow ezdxf swmm-toolkit > out/oracles.log 2>&1
+            # Lecteur DWG independant (LibreDWG), si le paquet existe sur l image Ubuntu
+            (sudo apt-get install -y -q libredwg-tools || sudo apt-get install -y -q libredwg-utils) >> out/oracles.log 2>&1 || true
             python3 app/tools/oracles/validate.py out/oracles >> out/oracles.log 2>&1 || code=1
             # Appli terrain : tests JavaScript (node --test, sans dependance), dont la relecture du fichier ecrit par ONADIS
             if [ -d app/tests/field ]; then
