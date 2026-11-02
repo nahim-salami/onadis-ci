@@ -152,6 +152,11 @@ jobs:
             if [ $c = 0 ]; then s=OK; else s=ECHEC; rc=1; fi
             echo "ONADIS autonome : $s" | tee -a "$GITHUB_STEP_SUMMARY"
             mkdir -p out/package/Desktop && cp -r app/src/Onadis.Desktop/bin/Release/net8.0-windows/. out/package/Desktop/ 2>/dev/null || true
+            # Distribution (archive portable + installeur Inno Setup), si le script existe sur la branche.
+            if [ $c = 0 ] && [ -f app/tools/desktop/package-desktop.ps1 ]; then
+              if pwsh -NoProfile -File app/tools/desktop/package-desktop.ps1 -Source app/src/Onadis.Desktop/bin/Release/net8.0-windows -Repo app -Output out/package/Distribution > out/package-Desktop.log 2>&1; then s=OK; else s=ECHEC; rc=1; fi
+              echo "Distribution ONADIS autonome : $s" | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
           fi
           # Paquet installable (chiffre avec les journaux) : DLL compilees par hote.
           for p in GstarCAD ZWCAD AutoCAD; do
