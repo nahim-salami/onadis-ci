@@ -56,6 +56,12 @@ jobs:
             curl -sfL -o "laz/$f" "https://raw.githubusercontent.com/PDAL/PDAL/master/test/data/laz/$f" || rm -f "laz/$f"
           done
           export ONADIS_LAZ_DIR="$PWD/laz"
+          # Nuages E57 publics (donnees de test de libE57Format, CC0) : relus par pye57 dans l oracle.
+          mkdir -p e57
+          for f in reference/bunnyDouble.e57 reference/bunnyInt32.e57 self/ColouredCubeDouble.e57 self/ColouredCubeFloat.e57; do
+            curl -sfL -o "e57/$(basename $f)" "https://raw.githubusercontent.com/asmaloney/libE57Format-test-data/main/$f" || rm -f "e57/$(basename $f)"
+          done
+          export ONADIS_E57_DIR="$PWD/e57"
           dotnet test app/tests/Onadis.Core.Tests/Onadis.Core.Tests.csproj -c Release --nologo \
             --logger "trx;LogFileName=tests.trx" --results-directory out > out/test.log 2>&1
           code=$?
@@ -65,13 +71,13 @@ jobs:
             dotnet build "$t" -c Release --nologo >> out/tools.log 2>&1 || code=1
           done
           echo "code=$code" >> "$GITHUB_OUTPUT"
-      - name: Oracles externes (IFC, LandXML, EPANET, LAZ)
+      - name: Oracles externes (IFC, LandXML, EPANET, LAZ, E57)
         id: oracle
         shell: bash
         run: |
           code=0
           if [ -d out/oracles ] && [ -f app/tools/oracles/validate.py ]; then
-            pip install -q ifcopenshell lxml wntr "laspy[lazrs]" > out/oracles.log 2>&1
+            pip install -q ifcopenshell lxml wntr "laspy[lazrs]" pye57 > out/oracles.log 2>&1
             python3 app/tools/oracles/validate.py out/oracles >> out/oracles.log 2>&1 || code=1
             if [ $code = 0 ]; then s=OK; else s=ECHEC; fi
             echo "Oracles externes : $s" | tee -a "$GITHUB_STEP_SUMMARY"
