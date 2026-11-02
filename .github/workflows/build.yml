@@ -78,8 +78,8 @@ jobs:
           code=0
           if [ -d out/oracles ] && [ -f app/tools/oracles/validate.py ]; then
             pip install -q ifcopenshell lxml wntr "laspy[lazrs]" pye57 pillow ezdxf swmm-toolkit > out/oracles.log 2>&1
-            # Lecteur DWG independant (LibreDWG), si le paquet existe sur l image Ubuntu
-            (sudo apt-get install -y -q libredwg-tools || sudo apt-get install -y -q libredwg-utils) >> out/oracles.log 2>&1 || true
+            # Lecteur DWG independant : LibreDWG 0.14 compile depuis la source officielle (pas de paquet Ubuntu)
+            ( curl -sfL -o /tmp/ldwg.tar.xz https://github.com/LibreDWG/libredwg/releases/download/0.14/libredwg-0.14.tar.xz               && tar xf /tmp/ldwg.tar.xz -C /tmp && cd /tmp/libredwg-0.14               && ./configure -q --disable-bindings --disable-docs --disable-python               && make -s -j4 && sudo make -s install && sudo ldconfig ) > out/libredwg.log 2>&1 || echo "LibreDWG : compilation impossible" >> out/oracles.log
             python3 app/tools/oracles/validate.py out/oracles >> out/oracles.log 2>&1 || code=1
             # Appli terrain : tests JavaScript (node --test, sans dependance), dont la relecture du fichier ecrit par ONADIS
             if [ -d app/tests/field ]; then
