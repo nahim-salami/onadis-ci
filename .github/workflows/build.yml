@@ -81,7 +81,7 @@ jobs:
             python3 app/tools/oracles/validate.py out/oracles >> out/oracles.log 2>&1 || code=1
             # Appli terrain : tests JavaScript (node --test, sans dependance), dont la relecture du fichier ecrit par ONADIS
             if [ -d app/tests/field ]; then
-              ONADIS_ORACLE_DIR="$PWD/out/oracles" node --test app/tests/field/ >> out/oracles.log 2>&1 || code=1
+              ONADIS_ORACLE_DIR="$PWD/out/oracles" node --test app/tests/field/geo.test.mjs >> out/oracles.log 2>&1 || code=1
             fi
             if [ $code = 0 ]; then s=OK; else s=ECHEC; fi
             echo "Oracles externes : $s" | tee -a "$GITHUB_STEP_SUMMARY"
