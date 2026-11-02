@@ -46,6 +46,16 @@ jobs:
           curl -sfL -o cnig/enedis.gml https://raw.githubusercontent.com/cnigfr/StaR-DT/master/JeuxTest/enedis.gml || true
           curl -sfL -o cnig/pcrs.gml https://raw.githubusercontent.com/cnigfr/PCRS/master/JeuxTest/JeuxTestv2.gml || true
           export ONADIS_CNIG_DIR="$PWD/cnig"
+          # Nuages LAZ publics (jeux de test de laspy et de PDAL) : decompression comparee a laspy + lazrs par l oracle.
+          mkdir -p laz
+          for f in simple.laz 1_4_w_evlr.laz extra.laz plane.laz simple.copc.laz autzen_trim.laz; do
+            curl -sfL -o "laz/$f" "https://raw.githubusercontent.com/laspy/laspy/master/tests/data/$f" || rm -f "laz/$f"
+          done
+          curl -sfL -o laz/simple.las.ref https://raw.githubusercontent.com/laspy/laspy/master/tests/data/simple.las || true
+          for f in simple-laszip-compressor-version-1.2r0.laz las_with_several_extra_byte_bloc.laz; do
+            curl -sfL -o "laz/$f" "https://raw.githubusercontent.com/PDAL/PDAL/master/test/data/laz/$f" || rm -f "laz/$f"
+          done
+          export ONADIS_LAZ_DIR="$PWD/laz"
           dotnet test app/tests/Onadis.Core.Tests/Onadis.Core.Tests.csproj -c Release --nologo \
             --logger "trx;LogFileName=tests.trx" --results-directory out > out/test.log 2>&1
           code=$?
@@ -55,13 +65,13 @@ jobs:
             dotnet build "$t" -c Release --nologo >> out/tools.log 2>&1 || code=1
           done
           echo "code=$code" >> "$GITHUB_OUTPUT"
-      - name: Oracles externes (IFC, LandXML)
+      - name: Oracles externes (IFC, LandXML, EPANET, LAZ)
         id: oracle
         shell: bash
         run: |
           code=0
           if [ -d out/oracles ] && [ -f app/tools/oracles/validate.py ]; then
-            pip install -q ifcopenshell lxml wntr > out/oracles.log 2>&1
+            pip install -q ifcopenshell lxml wntr "laspy[lazrs]" > out/oracles.log 2>&1
             python3 app/tools/oracles/validate.py out/oracles >> out/oracles.log 2>&1 || code=1
             if [ $code = 0 ]; then s=OK; else s=ECHEC; fi
             echo "Oracles externes : $s" | tee -a "$GITHUB_STEP_SUMMARY"
