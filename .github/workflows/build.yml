@@ -107,7 +107,7 @@ jobs:
         run: test "${{ steps.test.outputs.code }}" = "0" && test "${{ steps.oracle.outputs.code }}" = "0"
 
   plugins:
-    name: Plugins CAO (AutoCAD / GstarCAD / ZWCAD)
+    name: Plugins CAO (AutoCAD / GstarCAD / ZWCAD) et ONADIS autonome
     if: ${{ inputs.plugins }}
     runs-on: windows-latest
     steps:
@@ -144,6 +144,14 @@ jobs:
             dotnet build app/examples/Onadis.ExampleScripts/Onadis.ExampleScripts.csproj -c Release --nologo > out/build-scripts.log 2>&1 || rc=1
             mkdir -p out/package/Scripts
             cp app/examples/Onadis.ExampleScripts/bin/Release/netstandard2.0/Onadis.ExampleScripts.dll out/package/Scripts/ 2>/dev/null || true
+          fi
+          # ONADIS autonome (application WPF, runtime .NET 8 Desktop requis), s'il existe sur la branche.
+          if [ -f app/src/Onadis.Desktop/Onadis.Desktop.csproj ]; then
+            dotnet build app/src/Onadis.Desktop/Onadis.Desktop.csproj -c Release --nologo > out/build-Desktop.log 2>&1
+            c=$?
+            if [ $c = 0 ]; then s=OK; else s=ECHEC; rc=1; fi
+            echo "ONADIS autonome : $s" | tee -a "$GITHUB_STEP_SUMMARY"
+            mkdir -p out/package/Desktop && cp -r app/src/Onadis.Desktop/bin/Release/net8.0-windows/. out/package/Desktop/ 2>/dev/null || true
           fi
           # Paquet installable (chiffre avec les journaux) : DLL compilees par hote.
           for p in GstarCAD ZWCAD AutoCAD; do
