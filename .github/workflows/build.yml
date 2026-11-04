@@ -154,6 +154,10 @@ jobs:
             if [ $c = 0 ]; then s=OK; else s=ECHEC; rc=1; fi
             echo "ONADIS autonome : $s" | tee -a "$GITHUB_STEP_SUMMARY"
             mkdir -p out/package/Desktop && cp -r app/src/Onadis.Desktop/bin/Release/net8.0-windows/. out/package/Desktop/ 2>/dev/null || true
+            # Planche d'apercu des icones ONADIS (option --icones d'ONADIS autonome), si elle existe sur la branche.
+            if [ $c = 0 ] && [ -f app/src/Onadis.Desktop/IconSheet.cs ]; then
+              pwsh -NoProfile -Command "Start-Process -Wait -FilePath 'app/src/Onadis.Desktop/bin/Release/net8.0-windows/Onadis.Desktop.exe' -ArgumentList '--icones','$(cygpath -w "$PWD/out/package/icones.png")'" > out/icons.log 2>&1 || true
+            fi
             # Distribution (archive portable + installeur Inno Setup), si le script existe sur la branche.
             if [ $c = 0 ] && [ -f app/tools/desktop/package-desktop.ps1 ]; then
               if pwsh -NoProfile -File app/tools/desktop/package-desktop.ps1 -Source app/src/Onadis.Desktop/bin/Release/net8.0-windows -Repo app -Output out/package/Distribution > out/package-Desktop.log 2>&1; then s=OK; else s=ECHEC; rc=1; fi
